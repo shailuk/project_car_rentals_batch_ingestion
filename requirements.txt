@@ -1,0 +1,6 @@
+apache-airflow
+apache-airflow-providers-amazon
+apache-airflow-providers-common-sql
+#pyspark
+python-dotenv
+apache-airflow-providers-snowflake==6.12.1
