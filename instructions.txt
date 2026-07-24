@@ -1,0 +1,133 @@
+Data from car_rentals and customer files are loaded into the dimensions table in snowflake. (SCD Type 2)
+Data is then inserted into fact table (SCD Type 2)  
+
+Step 1 : Create S3 bucket and 2 folders within it - 1) car_rental_daily_data   2) customer_daily_data
+
+Step 2 : Create a new database - 'car_rental' in snowflake
+
+Step 3 : Run the SQL scripts to create dimension and fact tables. Insert dummy data
+
+Step 4 : Create file format type, storage integration and stage
+
+Step 5 : Create a policy and role. - This role is assigned to Managed Airflow
+         Policy - Access to S3 bucket, EMR Serverless and AllowMWAAtoPassEMRRole
+         {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                "Sid": "S3ObjectAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "s3:GetObject",
+                    "s3:GetObjectVersion",
+                    "s3:PutObject",
+                    "s3:DeleteObject"
+                ],
+                "Resource": "arn:aws:s3:::rootshailesh1/*"
+                },
+                {
+                "Sid": "S3BucketAccess",
+                "Effect": "Allow",
+                "Action": [
+                    "s3:ListBucket",
+                    "s3:GetBucketLocation"
+                ],
+                "Resource": "arn:aws:s3:::rootshailesh1"
+                }, 
+                {
+                "Sid": "EMRServerlessManagement",
+                "Effect": "Allow",
+                "Action": [
+                    "emr-serverless:StartApplication",
+                    "emr-serverless:StopApplication",
+                    "emr-serverless:GetApplication",
+                    "emr-serverless:StartJobRun",
+                    "emr-serverless:GetJobRun"
+                ],
+                "Resource": "arn:aws:emr-serverless:us-east-1:060662064877:/applications/00g79gc30k29mt09"
+                },
+                {
+                "Sid": "AllowMWAAtoPassEMRRole",
+                "Effect": "Allow",
+                "Action": "iam:PassRole",
+                "Resource": "arn:aws:iam::060662064877:role/YourEMRServerlessExecutionRole",
+                "Condition": {
+                    "StringEquals": {
+                    "iam:PassedToService": "emr-serverless.amazonaws.com"
+                    }
+                }
+                } ] }
+
+    Run DESC INTEGRATION storage_Integration_name;
+    Role - In the trusted relationship, add STORAGE_AWS_IAM_USER_ARN and STORAGE_AWS_EXTERNAL_ID
+
+Step 6 : Create EMR Serverless Application
+
+Step 7 : Add Trust Relationship to MWAA role
+
+Step 8 : Upload the JAR files in the correct GetBucketLocation
+
+Step 9 : Add EMR_SERVERLESS_ROLE_ARN - Create role and add it to the airflow dag code
+         {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "S3ReadAccessForCodeAndJars",
+                    "Effect": "Allow",
+                    "Action": [
+                        "s3:GetObject",
+                        "s3:ListBucket"
+                    ],
+                    "Resource": [
+                        "arn:aws:s3:::rootshailesh1",
+                        "arn:aws:s3:::rootshailesh1/*"
+                    ]
+                },
+                {
+                    "Sid": "S3WriteAccessForEMRLogs",
+                    "Effect": "Allow",
+                    "Action": [
+                        "s3:PutObject",
+                        "s3:DeleteObject"
+                    ],
+                    "Resource": [
+                        "arn:aws:s3:::rootshailesh1/emr_serverless_logs/*"
+                    ]
+                }
+            ]
+        }
+
+    Add Trust Policy 
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "emr-serverless.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+            }
+        ]
+    }
+    You actually don't attach the policy to the EMR Serverless Application itself.
+
+In AWS EMR Serverless, applications are just empty compute shells. 
+They don't hold permissions. Instead, you attach the policy to the IAM Role you 
+just created, and then you pass that role to the application at the exact moment
+you submit your job via Airflow.
+
+Step 10 : Make sure your requirements.txt file has all the required libraries. Upload the files 
+          in the correct locations. 
+
+Step 11 : Add variables (execution date) to apache airflow. Add connection details. 
+
+Step 12 : Also, add a cloudwatch logs access role to EMR so that it can access the cloudwatch for logging.
+
+
+
+
+
+
+
+
