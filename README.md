@@ -1,6 +1,6 @@
 # Project Car Rentals Batch Ingestion
 
-**Tech Stack:** AWS Managed Airflow Alternative, AWS EMR Serverless (Spark), Snowflake, Python, SQL
+**Tech Stack:** AWS Managed Airflow Alternative, AWS EMR Serverless (Spark), Snowflake, Python (Pyspark), SQL
 
 * **Dimensional Model:** Star schema with date_dim, car_dim, location_dim, customer_dim (SCD2), and rentals_fact (rental_id grain)
 
@@ -14,4 +14,3 @@
 
 * **KPIs & Analytics:** Revenue by car/location, long-rental ratio, avg duration, tickets by segment; sample SQL for insights
 
-* **Ops & Reliability:** S3, csv_format, retries, logging, and job parameterization for reproducibility
