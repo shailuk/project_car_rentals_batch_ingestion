@@ -15,6 +15,15 @@
 * **KPIs & Analytics:** Revenue by car/location, long-rental ratio, avg duration, tickets by segment; sample SQL for insights
 
 ## Workflow Diagram
-<img width="619" height="300" alt="image" src="https://github.com/user-attachments/assets/2e8d5ea6-bf58-4502-9e09-9db3f0c5f890" />
+<img width="519" height="200" alt="image" src="https://github.com/user-attachments/assets/2e8d5ea6-bf58-4502-9e09-9db3f0c5f890" />
+<br/>
+The files from S3 (Storage Layer) are processed using AWS EMR Serverless (Processing Layer) and loaded into SnowFlake (Data warehouse).
+<br/>
+## Star Schema Diagram 
+<img width="575" height="782" alt="image" src="https://github.com/user-attachments/assets/de3960f1-2ab0-4ff6-8413-a0175ed17b61" />
+
+
+
+
   
 
