@@ -22,8 +22,7 @@
 * **Data Warehouse Layer:** Snowflake (Serving / Dimensional Model)
 
 ## Star Schema Diagram 
-<br/>
-<img width="575" height="782" alt="image" src="https://github.com/user-attachments/assets/de3960f1-2ab0-4ff6-8413-a0175ed17b61" />
+<img width="537" height="805" alt="image" src="https://github.com/user-attachments/assets/7712eb8e-4efa-441c-a1ac-22cdd1506789" />
 
 
 
