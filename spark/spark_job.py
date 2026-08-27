@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lit, when, round, datediff
+from pyspark.sql.functions import col, lit, when, round, datediff, coalesce, broadcast
 import argparse
 
 def process_car_rental_data(args):
@@ -63,69 +63,67 @@ def process_car_rental_data(args):
     date_dim_df = spark.read.format(SNOWFLAKE_SOURCE_NAME).options(**snowflake_options).option("dbtable", "date_dim").load()
     customer_dim_df = spark.read.format(SNOWFLAKE_SOURCE_NAME).options(**snowflake_options).option("dbtable", "customer_dim").load()
 
-    # Join logic
-    fact_df = transformed_df.alias("raw") \
-        .join(car_dim_df.alias("car"), 
-              (col("raw.car.make") == col("car.make")) & 
-              (col("raw.car.model") == col("car.model")) & 
-              (col("raw.car.year") == col("car.year"))
-        ) \
-        .select(
-            col("raw.rental_id"),
-            col("raw.customer_id"),
-            col("car.car_key"),
-            col("raw.rental_location.pickup_location").alias("pickup_location"),
-            col("raw.rental_location.dropoff_location").alias("dropoff_location"),
-            col("raw.rental_period.start_date").alias("start_date"),
-            col("raw.rental_period.end_date").alias("end_date"),
-            col("raw.amount"),
-            col("raw.quantity"),
-            col("raw.rental_duration_days"),
-            col("raw.total_rental_amount"),
-            col("raw.average_daily_rental_amount"),
-            col("raw.is_long_rental")
-        )
-
-    fact_df = fact_df.alias("fact") \
-        .join(location_dim_df.alias("pickup_loc"), col("fact.pickup_location") == col("pickup_loc.location_name"), "left") \
-        .withColumnRenamed("location_key", "pickup_location_key") \
-        .drop("pickup_location")
-
-    fact_df = fact_df.alias("fact") \
-        .join(location_dim_df.alias("dropoff_loc"), col("fact.dropoff_location") == col("dropoff_loc.location_name"), "left") \
-        .withColumnRenamed("location_key", "dropoff_location_key") \
-        .drop("dropoff_location")
-
-    fact_df = fact_df.alias("fact") \
-        .join(date_dim_df.alias("start_date_dim"), col("fact.start_date") == col("start_date_dim.date"), "left") \
-        .withColumnRenamed("date_key", "start_date_key") \
-        .drop("start_date")
-
-    fact_df = fact_df.alias("fact") \
-        .join(date_dim_df.alias("end_date_dim"), col("fact.end_date") == col("end_date_dim.date"), "left") \
-        .withColumnRenamed("date_key", "end_date_key") \
-        .drop("end_date")
-
-    fact_df = fact_df.alias("fact") \
-        .join(customer_dim_df.alias("cust"), col("fact.customer_id") == col("cust.customer_id"), "left") \
-        .withColumnRenamed("customer_key", "customer_key") \
-        .drop("customer_id")
-
-    fact_df = fact_df.select(
-        "rental_id",
-        "customer_key",
-        "car_key",
-        "pickup_location_key",
-        "dropoff_location_key",
-        "start_date_key",
-        "end_date_key",
-        "amount",
-        "quantity",
-        "rental_duration_days",
-        "total_rental_amount",
-        "average_daily_rental_amount",
-        "is_long_rental"
+    # Join logic - Join all dimensions using Broadcast Left Joins
+fact_df = (
+    transformed_df.alias("raw")
+    .join(
+        broadcast(car_dim_df).alias("car"),
+        (col("raw.car.make") == col("car.make"))
+        & (col("raw.car.model") == col("car.model"))
+        & (col("raw.car.year") == col("car.year")),
+        "left",
     )
+    .join(
+        broadcast(location_dim_df).alias("pickup_loc"),
+        col("raw.rental_location.pickup_location")
+        == col("pickup_loc.location_name"),
+        "left",
+    )
+    .join(
+        broadcast(location_dim_df).alias("dropoff_loc"),
+        col("raw.rental_location.dropoff_location")
+        == col("dropoff_loc.location_name"),
+        "left",
+    )
+    .join(
+        broadcast(date_dim_df).alias("start_date_dim"),
+        col("raw.rental_period.start_date") == col("start_date_dim.date"),
+        "left",
+    )
+    .join(
+        broadcast(date_dim_df).alias("end_date_dim"),
+        col("raw.rental_period.end_date") == col("end_date_dim.date"),
+        "left",
+    )
+    .join(
+        broadcast(customer_dim_df).alias("cust"),
+        col("raw.customer_id") == col("cust.customer_id"),
+        "left",
+    )
+)
+
+# Extract final Star Schema columns and coalesce missing keys to -1 (UNKNOWN)
+final_fact_df = fact_df.select(
+    col("raw.rental_id").alias("rental_id"),
+    coalesce(col("cust.customer_key"), lit(-1)).alias("customer_key"),
+    coalesce(col("car.car_key"), lit(-1)).alias("car_key"),
+    coalesce(col("pickup_loc.location_key"), lit(-1)).alias(
+        "pickup_location_key"
+    ),
+    coalesce(col("dropoff_loc.location_key"), lit(-1)).alias(
+        "dropoff_location_key"
+    ),
+    coalesce(col("start_date_dim.date_key"), lit(-1)).alias("start_date_key"),
+    coalesce(col("end_date_dim.date_key"), lit(-1)).alias("end_date_key"),
+    col("raw.amount").alias("amount"),
+    col("raw.quantity").alias("quantity"),
+    col("raw.rental_duration_days").alias("rental_duration_days"),
+    col("raw.total_rental_amount").alias("total_rental_amount"),
+    col("raw.average_daily_rental_amount").alias(
+        "average_daily_rental_amount"
+    ),
+    col("raw.is_long_rental").alias("is_long_rental"),
+)
 
     # Write Fact Table back to Snowflake
     fact_df.write \
