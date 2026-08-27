@@ -19,7 +19,9 @@
 <br/>
 The files from S3 (Storage Layer) are processed using AWS EMR Serverless (Processing Layer) and loaded into SnowFlake (Data warehouse).
 <br/>
+
 ## Star Schema Diagram 
+<br/>
 <img width="575" height="782" alt="image" src="https://github.com/user-attachments/assets/de3960f1-2ab0-4ff6-8413-a0175ed17b61" />
 
 
