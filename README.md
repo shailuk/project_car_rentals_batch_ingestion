@@ -14,3 +14,7 @@
 
 * **KPIs & Analytics:** Revenue by car/location, long-rental ratio, avg duration, tickets by segment; sample SQL for insights
 
+## Workflow Diagram
+<img width="619" height="300" alt="image" src="https://github.com/user-attachments/assets/2e8d5ea6-bf58-4502-9e09-9db3f0c5f890" />
+  
+
