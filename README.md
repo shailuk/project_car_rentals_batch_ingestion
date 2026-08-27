@@ -17,9 +17,9 @@
 ## Workflow Diagram
 <img width="519" height="200" alt="image" src="https://github.com/user-attachments/assets/2e8d5ea6-bf58-4502-9e09-9db3f0c5f890" />
 <br/>
-**Storage Layer:** AWS S3 (Raw / Landing Zone)
-**Processing Layer:** AWS EMR Serverless (PySpark Compute)
-**Data Warehouse Layer:** Snowflake (Serving / Dimensional Model)
+* **Storage Layer:** AWS S3 (Raw / Landing Zone)
+* **Processing Layer:** AWS EMR Serverless (PySpark Compute)
+* **Data Warehouse Layer:** Snowflake (Serving / Dimensional Model)
 <br/>
 
 ## Star Schema Diagram 
